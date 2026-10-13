@@ -41,7 +41,51 @@ def client(monkeypatch):
             if token in tokens:
                 return httpx.Response(200, json={
                     'id': tokens[token], 'email': f'{token}@example.com'})
-            return httpx.Response(401, json={'message': 'invalid'})
+        if req.url.host == 'generativelanguage.googleapis.com':
+            key = req.url.params.get('key', '')
+            if key == 'gemini-down':
+                return httpx.Response(500, json={'error': 'provider failure'})
+            if key == 'gemini-rate-limit':
+                return httpx.Response(429, json={'error': 'rate limit'})
+            if key == 'gemini-invalid-json':
+                return httpx.Response(200, json={
+                    'candidates': [{'content': {'parts': [{'text': 'not valid json'}]}}]
+                })
+            if key == 'gemini-hallucinated':
+                return httpx.Response(200, json={
+                    'candidates': [{
+                        'content': {
+                            'parts': [{
+                                'text': json.dumps({
+                                    'summary': 'Focus on your critical tasks.',
+                                    'tasks': [
+                                        {'task_id': '99999999-9999-9999-9999-999999999999', 'duration_minutes': 60, 'explanation': 'Hallucinated task'},
+                                        {'task_id': TASK_A, 'duration_minutes': 45, 'explanation': 'High-priority real task'}
+                                    ],
+                                    'study_tips': ['Use active recall', 'Take small breaks']
+                                })
+                            }]
+                        }
+                    }]
+                })
+            return httpx.Response(200, json={
+                'candidates': [{
+                    'content': {
+                        'parts': [{
+                            'text': json.dumps({
+                                'summary': 'Start with CS assignment first.',
+                                'tasks': [
+                                    {'task_id': TASK_A, 'duration_minutes': 50, 'explanation': 'Due soon and high priority.'}
+                                ],
+                                'study_tips': [
+                                    'Work in 25-minute Pomodoro focus blocks.',
+                                    'Test active recall after each section.'
+                                ]
+                            })
+                        }]
+                    }
+                }]
+            })
 
         if req.url.path != '/rest/v1/tasks':
             return httpx.Response(404)
@@ -203,3 +247,94 @@ def test_cors_preflight_for_local_react(client):
     })
     assert response.status_code == 200
     assert response.headers['access-control-allow-origin'] == 'http://localhost:3000'
+
+
+def test_study_plan_requires_auth(client):
+    test_client, _, _ = client
+    assert test_client.post('/api/ai/study-plan').status_code == 401
+    assert test_client.post('/api/ai/study-plan', headers=auth('bad')).status_code == 401
+
+
+def test_study_plan_empty_tasks(client, monkeypatch):
+    test_client, calls, records = client
+    # Mark task as completed so user has 0 incomplete tasks
+    records[TASK_A]['completed'] = True
+    monkeypatch.setenv('GEMINI_API_KEY', 'valid-key')
+    response = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert response.status_code == 200
+    data = response.json()
+    assert data['tasks'] == []
+    assert 'all caught up' in data['summary'].lower()
+    # Confirm Gemini was NOT called when tasks are empty
+    gemini_calls = [c for c in calls if c.url.host == 'generativelanguage.googleapis.com']
+    assert len(gemini_calls) == 0
+
+
+def test_study_plan_missing_gemini_key(client, monkeypatch):
+    test_client, _, records = client
+    records[TASK_A]['completed'] = False
+    monkeypatch.delenv('GEMINI_API_KEY', raising=False)
+    response = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert response.status_code == 503
+    assert 'gemini_api_key is missing' in response.json()['detail'].lower()
+
+
+def test_study_plan_successful(client, monkeypatch):
+    test_client, calls, records = client
+    records[TASK_A]['completed'] = False
+    monkeypatch.setenv('GEMINI_API_KEY', 'valid-key')
+    response = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['tasks']) == 1
+    assert data['tasks'][0]['task_id'] == TASK_A
+    assert data['tasks'][0]['title'] == 'Study FastAPI'
+    assert data['tasks'][0]['duration_minutes'] == 50
+    assert len(data['study_tips']) >= 2
+    # Verify Gemini was invoked
+    gemini_calls = [c for c in calls if c.url.host == 'generativelanguage.googleapis.com']
+    assert len(gemini_calls) == 1
+    assert gemini_calls[0].url.params['key'] == 'valid-key'
+
+
+def test_study_plan_hallucinated_task_id_filtered(client, monkeypatch):
+    test_client, _, records = client
+    records[TASK_A]['completed'] = False
+    monkeypatch.setenv('GEMINI_API_KEY', 'gemini-hallucinated')
+    response = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert response.status_code == 200
+    data = response.json()
+    # 9999... should not be in the returned tasks; only user's task TASK_A is returned
+    returned_ids = [t['task_id'] for t in data['tasks']]
+    assert '99999999-9999-9999-9999-999999999999' not in returned_ids
+    assert TASK_A in returned_ids
+
+
+def test_study_plan_gemini_failures_handled(client, monkeypatch):
+    test_client, _, records = client
+    records[TASK_A]['completed'] = False
+    # Provider 500 error
+    monkeypatch.setenv('GEMINI_API_KEY', 'gemini-down')
+    res = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert res.status_code == 502
+
+    # Rate limit 429
+    monkeypatch.setenv('GEMINI_API_KEY', 'gemini-rate-limit')
+    res_rl = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert res_rl.status_code == 503
+    assert 'rate limit' in res_rl.json()['detail'].lower()
+
+    # Invalid JSON
+    monkeypatch.setenv('GEMINI_API_KEY', 'gemini-invalid-json')
+    res_inv = test_client.post('/api/ai/study-plan', headers=auth('token-a'))
+    assert res_inv.status_code == 502
+
+
+def test_study_plan_user_isolation(client, monkeypatch):
+    test_client, _, records = client
+    records[TASK_A]['completed'] = False
+    monkeypatch.setenv('GEMINI_API_KEY', 'valid-key')
+    # User B has no tasks
+    response = test_client.post('/api/ai/study-plan', headers=auth('token-b'))
+    assert response.status_code == 200
+    assert response.json()['tasks'] == []

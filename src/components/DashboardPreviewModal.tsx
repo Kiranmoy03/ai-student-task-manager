@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, Priority } from '../types/student';
+import { Task, Priority, StudyPlan } from '../types/student';
 import { SAMPLE_SUBJECTS, DAILY_SCHEDULE } from '../data/sampleData';
-import { fetchTasks, createTask, updateTask, deleteTask as apiDeleteTask } from '../lib/taskApi';
+import { fetchTasks, createTask, updateTask, deleteTask as apiDeleteTask, fetchStudyPlan } from '../lib/taskApi';
 import { SparkleIcon } from './SparkleIcon';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -16,16 +16,23 @@ import {
   CheckCircle2,
   ArrowRight,
   Trash2,
+  Sparkles,
+  RefreshCw,
+  Clock,
+  BookOpen,
+  Lightbulb,
 } from 'lucide-react';
 
 interface DashboardPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: 'tasks' | 'schedule' | 'planner';
 }
 
 export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
   isOpen,
   onClose,
+  initialTab,
 }) => {
   const { user, session, loading: authLoading, openAuthModal, signOut } = useAuth();
 
@@ -45,6 +52,18 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'tasks' | 'schedule' | 'planner'>('tasks');
 
+  // AI Smart Study Planner State
+  const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+
+  // Sync initial tab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
   // New task form state
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskSubject, setNewTaskSubject] = useState('MATH 204');
@@ -60,6 +79,9 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
     setSavingTask(false);
     setBusyTaskId(null);
     setTaskError(null);
+    setStudyPlan(null);
+    setGeneratingPlan(false);
+    setPlanError(null);
     if (!user || !session) {
       setTaskState({ ownerId: null, items: [] });
       setLoadingTasks(false);
@@ -168,6 +190,28 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
     } finally {
       if (currentOwner.current === ownerId && currentToken.current === accessToken) {
         setSavingTask(false);
+      }
+    }
+  };
+
+  const handleGenerateStudyPlan = async () => {
+    if (!session?.access_token || !user || generatingPlan) return;
+    const ownerId = user.id;
+    const accessToken = session.access_token;
+    setGeneratingPlan(true);
+    setPlanError(null);
+    try {
+      const plan = await fetchStudyPlan(accessToken);
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setStudyPlan(plan);
+      }
+    } catch (err: unknown) {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setPlanError(err instanceof Error ? err.message : 'Unable to generate study plan.');
+      }
+    } finally {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setGeneratingPlan(false);
       }
     }
   };
@@ -571,23 +615,264 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: STUDY PLAN (Explicitly "Coming soon" as instructed) */}
+              {/* TAB 3: STUDY PLAN (AI Smart Study Planner) */}
               {activeTab === 'planner' && (
-                <div className="p-8 rounded-3xl bg-white/[0.03] border border-violet-500/20 text-center space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/40 text-violet-400 flex items-center justify-center mx-auto">
-                    <SparkleIcon size={20} className="text-violet-300" />
+                <div className="space-y-6">
+                  {/* Top Bar / Strategy Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-r from-violet-950/40 via-purple-900/20 to-black/40 border border-violet-500/20">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-violet-300">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-base font-semibold text-white tracking-tight">AI Smart Study Planner</h3>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
+                          Gemini 2.5 Flash Lite
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        Synthesizes your pending assignments into an optimal study order with strategic focus time estimates.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateStudyPlan}
+                      disabled={generatingPlan || loadingTasks}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-semibold shadow-md shadow-violet-900/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      {generatingPlan ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Generating Plan...</span>
+                        </>
+                      ) : studyPlan ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Regenerate Study Plan</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Generate Study Plan</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <div>
-                    <span className="inline-block text-xs font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/40 px-2.5 py-0.5 rounded-full mb-2">
-                      Coming soon
-                    </span>
-                    <h3 className="text-xl font-light text-white">
-                      Python AI Study Planner Engine
-                    </h3>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-                    Adaptive study planning endpoint will automatically distribute problem sets, active recall decks, and practice tests across open calendar gaps. Integration with the Python/FastAPI backend is pending.
-                  </p>
+
+                  {/* Error State */}
+                  {planError && (
+                    <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/40 flex items-start justify-between gap-3 text-xs text-rose-300">
+                      <div className="flex items-start gap-2.5">
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <span className="font-semibold text-rose-200">Unable to generate plan</span>
+                          <p className="text-rose-300/90 leading-relaxed">{planError}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGenerateStudyPlan}
+                        className="px-3 py-1 rounded-lg bg-rose-900/60 hover:bg-rose-900 text-rose-100 text-xs font-medium shrink-0 transition-colors cursor-pointer"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Loading State */}
+                  {generatingPlan && (
+                    <div className="p-10 rounded-3xl bg-white/[0.02] border border-violet-500/20 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center mx-auto animate-pulse">
+                        <Loader2 className="w-6 h-6 animate-spin text-violet-300" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium text-white">Analyzing Your Coursework</h4>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                          Gemini is prioritizing your deadlines, balancing subject cognitive loads, and computing optimal study durations...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty state: No incomplete tasks */}
+                  {!generatingPlan && !studyPlan && tasks.length > 0 && tasks.filter(t => !t.completed).length === 0 && (
+                    <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-950/60 border border-emerald-700/40 text-emerald-400 flex items-center justify-center mx-auto">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h4 className="text-base font-medium text-white">All caught up!</h4>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                          All caught up! Add some tasks to generate a study plan.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('tasks')}
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        Add New Task
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Empty state: No tasks at all */}
+                  {!generatingPlan && !studyPlan && tasks.length === 0 && !loadingTasks && (
+                    <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center mx-auto">
+                        <BookOpen className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h4 className="text-base font-medium text-white">No tasks in your workspace yet</h4>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                          All caught up! Add some tasks to generate a study plan.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('tasks')}
+                        className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Create Your First Task
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Initial ungenerated state with pending tasks */}
+                  {!generatingPlan && !studyPlan && tasks.some(t => !t.completed) && (
+                    <div className="p-8 rounded-3xl bg-white/[0.02] border border-violet-500/20 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/40 text-violet-400 flex items-center justify-center mx-auto">
+                        <SparkleIcon size={22} className="text-violet-300" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h4 className="text-base font-medium text-white">Ready to plan your focus session?</h4>
+                        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                          You have {tasks.filter(t => !t.completed).length} pending {tasks.filter(t => !t.completed).length === 1 ? 'task' : 'tasks'}. Click below to have AI sequence your study blocks for peak retention and deadline protection.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGenerateStudyPlan}
+                        className="px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition-all cursor-pointer inline-flex items-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Generate Study Plan</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Generated Study Plan Display */}
+                  {!generatingPlan && studyPlan && (
+                    <div className="space-y-5 animate-in fade-in duration-300">
+                      {/* Summary Banner */}
+                      <div className="p-4 sm:p-5 rounded-2xl bg-violet-950/30 border border-violet-500/30 space-y-2">
+                        <div className="flex items-center gap-2 text-violet-300 text-xs font-semibold uppercase tracking-wider">
+                          <Lightbulb className="w-3.5 h-3.5 text-violet-400" />
+                          <span>Personalized Strategy Summary</span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-light">
+                          {studyPlan.summary}
+                        </p>
+                      </div>
+
+                      {/* Empty tasks inside study plan response (e.g. backend reported all caught up) */}
+                      {studyPlan.tasks.length === 0 && (
+                        <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center text-xs text-slate-400">
+                          All caught up! Add some tasks to generate a study plan.
+                        </div>
+                      )}
+
+                      {/* Ordered Tasks */}
+                      {studyPlan.tasks.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                            <span className="font-semibold text-slate-300 uppercase tracking-wider text-[11px]">
+                              Recommended Sequence ({studyPlan.tasks.length} tasks)
+                            </span>
+                            <span className="font-mono text-violet-400 text-[11px]">
+                              Total: {studyPlan.tasks.reduce((acc, curr) => acc + curr.duration_minutes, 0)} min suggested
+                            </span>
+                          </div>
+
+                          <div className="space-y-2.5">
+                            {studyPlan.tasks.map((task) => (
+                              <div
+                                key={task.task_id}
+                                className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-violet-500/30 transition-all space-y-2.5"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-start gap-3 min-w-0">
+                                    <div className="w-6 h-6 rounded-full bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-bold font-mono flex items-center justify-center shrink-0 mt-0.5">
+                                      {task.order}
+                                    </div>
+                                    <div className="min-w-0 space-y-1">
+                                      <h5 className="text-sm font-medium text-white tracking-tight">
+                                        {task.title}
+                                      </h5>
+                                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                        <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[11px] text-slate-300 font-mono">
+                                          {task.subject}
+                                        </span>
+                                        {task.due && (
+                                          <span className="text-[11px] text-slate-400">
+                                            Due: {task.due}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span
+                                      className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
+                                        task.priority === 'High'
+                                          ? 'bg-rose-950/80 text-rose-300 border border-rose-800/40'
+                                          : task.priority === 'Medium'
+                                          ? 'bg-amber-950/80 text-amber-300 border border-amber-800/40'
+                                          : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/40'
+                                      }`}
+                                    >
+                                      {task.priority}
+                                    </span>
+                                    <div className="flex items-center gap-1 bg-violet-950/60 border border-violet-800/40 text-violet-200 text-xs font-mono px-2.5 py-0.5 rounded-full">
+                                      <Clock className="w-3 h-3 text-violet-400" />
+                                      <span>{task.duration_minutes}m</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="pl-9 text-xs text-slate-400 leading-relaxed border-t border-white/5 pt-2 flex items-start gap-1.5">
+                                  <SparkleIcon size={12} className="text-violet-400 shrink-0 mt-0.5" />
+                                  <span>{task.explanation}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Practical Study Tips */}
+                      {studyPlan.study_tips && studyPlan.study_tips.length > 0 && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                            <BookOpen className="w-3.5 h-3.5 text-violet-400" />
+                            <span>Actionable Study Tips</span>
+                          </div>
+                          <ul className="space-y-2">
+                            {studyPlan.study_tips.map((tip, idx) => (
+                              <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed">
+                                <span className="w-4 h-4 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30 text-[10px] font-mono flex items-center justify-center shrink-0 mt-0.5">
+                                  {idx + 1}
+                                </span>
+                                <span>{tip}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

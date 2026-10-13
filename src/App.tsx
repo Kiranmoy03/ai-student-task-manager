@@ -17,9 +17,11 @@ import { AuthModal } from './components/AuthModal';
 function MainContent() {
   const { user, openAuthModal } = useAuth();
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState<'tasks' | 'schedule' | 'planner'>('tasks');
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
 
-  const handleOpenDashboard = () => {
+  const handleOpenDashboard = (tab: 'tasks' | 'schedule' | 'planner' = 'tasks') => {
+    setDashboardTab(tab);
     setIsDashboardOpen(true);
   };
 
@@ -63,6 +65,7 @@ function MainContent() {
       <DashboardPreviewModal
         isOpen={isDashboardOpen}
         onClose={handleCloseDashboard}
+        initialTab={dashboardTab}
       />
 
       {/* Supabase Authentication Modal (Email/Password Login & Signup) */}

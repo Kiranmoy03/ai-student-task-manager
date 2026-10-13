@@ -7,7 +7,7 @@ import { fetchTasks, updateTask } from '../lib/taskApi';
 import { Check, Clock, BookOpen, Sparkles, TrendingUp, ChevronRight } from 'lucide-react';
 
 interface ScatteredShowcaseProps {
-  onOpenDashboard: () => void;
+  onOpenDashboard: (tab?: 'tasks' | 'schedule' | 'planner') => void;
   refreshKey: number;
 }
 
@@ -196,7 +196,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                     </p>
                   </div>
                   <button
-                    onClick={onOpenDashboard}
+                    onClick={() => onOpenDashboard('tasks')}
                     type="button"
                     className="text-xs font-semibold text-violet-300 hover:text-white flex items-center gap-1 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-lg p-1"
                   >
@@ -408,9 +408,14 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                       <p className="text-[11px] text-slate-400">Adaptive schedule engine</p>
                     </div>
                   </div>
-                  <span className="text-[11px] font-medium text-amber-300 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full">
-                    Coming soon
-                  </span>
+                  <button
+                    onClick={() => onOpenDashboard('planner')}
+                    type="button"
+                    className="text-xs font-semibold text-violet-300 hover:text-white flex items-center gap-1 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-lg p-1"
+                  >
+                    <span>Open</span>
+                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
 
                 <div className="space-y-2">
@@ -432,7 +437,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                 </div>
 
                 <p className="mt-3 text-[11px] text-slate-500 italic text-center">
-                  Python AI study planning endpoint integration pending
+                  Powered by Gemini 2.5 Flash Lite · Click Open to view your custom AI plan
                 </p>
               </div>
             </article>

@@ -6,7 +6,7 @@ export interface Task {
   subject: string;
   dueDate: string;
   dueTime?: string;
-  estimatedMinutes: number;
+  estimatedMinutes?: number;
   priority: Priority;
   completed: boolean;
 }
@@ -28,3 +28,21 @@ export interface ScheduleBlock {
   duration: string;
   completed?: boolean;
 }
+
+export interface PlannedTask {
+  task_id: string;
+  title: string;
+  subject: string;
+  due: string | null;
+  priority: 'High' | 'Medium' | 'Low';
+  order: number;
+  duration_minutes: number;
+  explanation: string;
+}
+
+export interface StudyPlan {
+  summary: string;
+  tasks: PlannedTask[];
+  study_tips: string[];
+}
+

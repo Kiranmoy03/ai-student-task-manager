@@ -1,4 +1,4 @@
-import { Priority, Task } from '../types/student';
+import { Priority, Task, StudyPlan } from '../types/student';
 
 // Local: VITE_API_BASE_URL=http://localhost:8000
 // Hosted site: VITE_API_BASE_URL=https://your-deployed-fastapi.example
@@ -95,3 +95,10 @@ export async function updateTask(token: string, taskId: string, changes: { compl
 export async function deleteTask(token: string, taskId: string): Promise<void> {
   await request<void>(token, `/api/tasks/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
 }
+
+export async function fetchStudyPlan(token: string): Promise<StudyPlan> {
+  return await request<StudyPlan>(token, '/api/ai/study-plan', {
+    method: 'POST',
+  });
+}
+
