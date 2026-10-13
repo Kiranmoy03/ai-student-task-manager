@@ -437,7 +437,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                 </div>
 
                 <p className="mt-3 text-[11px] text-slate-500 italic text-center">
-                  Powered by Gemini 2.5 Flash Lite · Click Open to view your custom AI plan
+                  Powered by Gemini 3.5 Flash-Lite · Click Open to view your custom AI plan
                 </p>
               </div>
             </article>

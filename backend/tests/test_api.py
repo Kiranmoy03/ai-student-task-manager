@@ -295,6 +295,7 @@ def test_study_plan_successful(client, monkeypatch):
     gemini_calls = [c for c in calls if c.url.host == 'generativelanguage.googleapis.com']
     assert len(gemini_calls) == 1
     assert gemini_calls[0].url.params['key'] == 'valid-key'
+    assert gemini_calls[0].url.path == '/v1beta/models/gemini-3.5-flash-lite:generateContent'
 
 
 def test_study_plan_hallucinated_task_id_filtered(client, monkeypatch):

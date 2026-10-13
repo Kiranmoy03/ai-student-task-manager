@@ -627,7 +627,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                         </div>
                         <h3 className="text-base font-semibold text-white tracking-tight">AI Smart Study Planner</h3>
                         <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30">
-                          Gemini 2.5 Flash Lite
+                          Gemini 3.5 Flash-Lite
                         </span>
                       </div>
                       <p className="text-xs text-slate-400">

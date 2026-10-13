@@ -314,7 +314,7 @@ async def generate_study_plan(user: Annotated[CurrentUser, Depends(get_current_u
     )
 
     gemini_url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
         f"?key={gemini_key}"
     )
     gemini_body = {
