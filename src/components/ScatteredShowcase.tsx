@@ -1,20 +1,94 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Task } from '../types/student';
 import { INITIAL_TASKS, SAMPLE_SUBJECTS } from '../data/sampleData';
+import { useAuth } from '../context/AuthContext';
+import { fetchTasks, updateTask } from '../lib/taskApi';
 import { Check, Clock, BookOpen, Sparkles, TrendingUp, ChevronRight } from 'lucide-react';
 
 interface ScatteredShowcaseProps {
   onOpenDashboard: () => void;
+  refreshKey: number;
 }
 
-export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDashboard }) => {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDashboard, refreshKey }) => {
+  const { user, session } = useAuth();
+  // Visitors see a clearly labelled interactive demo; logged-in students see real tasks.
+  const [demoTasks, setDemoTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [serverState, setServerState] = useState<{ owner: string | null; tasks: Task[] }>({ owner: null, tasks: [] });
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [busyTask, setBusyTask] = useState<string | null>(null);
+  const principal = useRef({ userId: user?.id ?? null, token: session?.access_token ?? null });
+  principal.current = { userId: user?.id ?? null, token: session?.access_token ?? null };
 
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  // Owner-scoped state prevents a previous account's tasks appearing after account switches.
+  const tasks = user
+    ? (serverState.owner === user.id ? serverState.tasks : [])
+    : demoTasks;
+
+  useEffect(() => {
+    if (!user || !session) {
+      setServerState({ owner: null, tasks: [] });
+      setLoadingTasks(false);
+      setTaskError(null);
+      setBusyTask(null);
+      return;
+    }
+    const owner = user.id;
+    const token = session.access_token;
+    let active = true;
+    setServerState({ owner, tasks: [] });
+    setLoadingTasks(true);
+    setTaskError(null);
+    setBusyTask(null);
+    fetchTasks(token)
+      .then((loaded) => {
+        if (active && principal.current.userId === owner && principal.current.token === token) {
+          setServerState({ owner, tasks: loaded });
+        }
+      })
+      .catch((error: unknown) => {
+        if (active && principal.current.userId === owner && principal.current.token === token) {
+          setTaskError(error instanceof Error ? error.message : 'Could not load your tasks.');
+        }
+      })
+      .finally(() => {
+        if (active && principal.current.userId === owner && principal.current.token === token) {
+          setLoadingTasks(false);
+        }
+      });
+    return () => { active = false; };
+  }, [user?.id, session?.access_token, refreshKey]);
+
+  const toggleTask = async (id: string) => {
+    if (!user) {
+      setDemoTasks((previous) => previous.map((t) => t.id === id ? { ...t, completed: !t.completed } : t));
+      return;
+    }
+    if (!session || loadingTasks || busyTask || taskError) return;
+    const original = tasks.find((t) => t.id === id);
+    if (!original) return;
+    const owner = user.id;
+    const token = session.access_token;
+    setBusyTask(id);
+    setTaskError(null);
+    try {
+      const saved = await updateTask(token, id, { completed: !original.completed });
+      if (principal.current.userId === owner && principal.current.token === token) {
+        setServerState((previous) => previous.owner === owner
+          ? { owner, tasks: previous.tasks.map((t) => t.id === id ? saved : t) }
+          : previous);
+      }
+    } catch (error) {
+      if (principal.current.userId === owner && principal.current.token === token) {
+        setTaskError(error instanceof Error ? error.message : 'Could not update the task.');
+      }
+    } finally {
+      if (principal.current.userId === owner && principal.current.token === token) {
+        setBusyTask(null);
+      }
+    }
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
@@ -62,11 +136,11 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-white tracking-tight">Subject Overview</h3>
-                      <p className="text-xs text-slate-400">Fall Semester · 4 Enrolled</p>
+                      <p className="text-xs text-slate-400">Sample subjects · Demo</p>
                     </div>
                   </div>
                   <span className="text-xs font-mono text-violet-300 bg-violet-950/60 border border-violet-800/40 px-2 py-0.5 rounded-full">
-                    4 Courses
+                    Demo
                   </span>
                 </div>
 
@@ -112,13 +186,13 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                 <div className="flex items-center justify-between mb-5">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-white tracking-tight">Today’s Tasks</h3>
+                      <h3 className="text-lg font-semibold text-white tracking-tight">{user ? "Your Tasks" : "Today’s Tasks"}</h3>
                       <span className="text-xs bg-violet-600/20 text-violet-300 border border-violet-500/30 font-medium px-2 py-0.5 rounded-full">
-                        Interactive
+                        {user ? 'Live' : 'Demo'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      {completedCount} of {tasks.length} tasks completed today
+                      {completedCount} of {tasks.length} {user ? 'tasks completed' : 'demo tasks completed'}
                     </p>
                   </div>
                   <button
@@ -132,10 +206,16 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                 </div>
 
                 <div className="space-y-2.5">
-                  {tasks.map((task) => (
+                  {user && loadingTasks && <p className="text-xs text-slate-400">Loading your saved tasks...</p>}
+                  {user && !session && <p className="text-xs text-slate-400">Waiting for your login session...</p>}
+                  {user && taskError && <p role="alert" className="text-xs text-rose-300">{taskError}</p>}
+                  {user && session && !loadingTasks && !taskError && tasks.length === 0 && (
+                    <p className="text-xs text-slate-400">No saved tasks yet. Click Expand to add one.</p>
+                  )}
+                  {tasks.slice(0, 4).map((task) => (
                     <div
                       key={task.id}
-                      onClick={() => toggleTask(task.id)}
+                      onClick={() => { void toggleTask(task.id); }}
                       className={`group flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
                         task.completed
                           ? 'bg-white/[0.02] border-white/5 text-slate-500'
@@ -161,15 +241,17 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                             {task.title}
                           </span>
                           <span className="text-[11px] text-slate-400 block truncate">
-                            {task.subject} · {task.dueTime}
+                            {task.subject} · {user ? task.dueDate : (task.dueTime || task.dueDate)}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[11px] font-mono text-slate-400">
-                          {task.estimatedMinutes}m
-                        </span>
+                        {!user && task.estimatedMinutes != null && (
+                          <span className="text-[11px] font-mono text-slate-400">
+                            {task.estimatedMinutes}m
+                          </span>
+                        )}
                         <span
                           className={`w-2 h-2 rounded-full ${
                             task.priority === 'high'
@@ -186,9 +268,9 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                  <span>Click any item to toggle completion</span>
+                  <span>{user && tasks.length > 4 ? 'Showing latest 4 · Expand for all' : 'Click any item to toggle completion'}</span>
                   <span className="font-mono text-violet-400">
-                    {Math.round((completedCount / tasks.length) * 100)}% Complete
+                    {tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0}% Complete
                   </span>
                 </div>
               </div>
@@ -218,7 +300,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                     <h3 className="text-sm font-semibold text-white tracking-tight">Upcoming Deadline</h3>
                   </div>
                   <span className="text-[11px] font-mono text-rose-300 bg-rose-950/60 border border-rose-800/40 px-2 py-0.5 rounded-full">
-                    Urgent
+                    Demo
                   </span>
                 </div>
 
@@ -228,7 +310,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>Due today at 5:00 PM</span>
-                    <span className="text-amber-400 font-mono">2h 45m left</span>
+                    <span className="text-amber-400 font-mono">Demo example</span>
                   </div>
                   <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-400 w-3/4 rounded-full" />
@@ -266,7 +348,7 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
                     <h3 className="text-sm font-semibold text-white tracking-tight">Weekly Progress</h3>
                   </div>
                   <span className="text-xs font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full">
-                    84% on track
+                    Demo
                   </span>
                 </div>
 

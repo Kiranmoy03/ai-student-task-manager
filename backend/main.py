@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated, Literal
 from uuid import UUID
@@ -14,12 +14,12 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 load_dotenv(Path(__file__).with_name('.env'))
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title='AI Student Task Manager API', version='0.1.0')
+app = FastAPI(title='AI Student Task Manager API', version='0.3.0')
 origins = [origin.strip() for origin in os.getenv(
     'CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173'
 ).split(',') if origin.strip()]
@@ -38,7 +38,7 @@ class Settings:
 def get_settings() -> Settings:
     url = os.getenv('SUPABASE_URL', '').rstrip('/')
     key = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
-    if not url.startswith('https://') or not key:
+    if not url.startswith('https://') or not key.startswith('sb_publishable_'):
         raise HTTPException(status_code=503, detail='Configure Supabase backend environment variables.')
     return Settings(url, key)
 
@@ -80,14 +80,14 @@ async def get_current_user(
     return CurrentUser(user_id, data.get('email'), token, settings)
 
 
+# The existing public.tasks table has precisely these writable columns.
+# Date/time estimates are *not* silently written to nonexistent columns.
 class TaskCreate(BaseModel):
     model_config = ConfigDict(extra='forbid')
     title: str = Field(min_length=1, max_length=160)
     subject: str = Field(default='General', min_length=1, max_length=80)
-    due_date: date | None = None
-    due_time: time | None = None
-    estimated_minutes: int = Field(default=45, ge=1, le=1440)
-    priority: Literal['low', 'medium', 'high'] = 'medium'
+    due: date | None = None
+    priority: Literal['High', 'Medium', 'Low'] = 'Medium'
     completed: bool = False
 
     @field_validator('title', 'subject')
@@ -103,10 +103,8 @@ class TaskUpdate(BaseModel):
     model_config = ConfigDict(extra='forbid')
     title: str | None = Field(default=None, min_length=1, max_length=160)
     subject: str | None = Field(default=None, min_length=1, max_length=80)
-    due_date: date | None = None
-    due_time: time | None = None
-    estimated_minutes: int | None = Field(default=None, ge=1, le=1440)
-    priority: Literal['low', 'medium', 'high'] | None = None
+    due: date | None = None
+    priority: Literal['High', 'Medium', 'Low'] | None = None
     completed: bool | None = None
 
     @field_validator('title', 'subject')
@@ -118,10 +116,26 @@ class TaskUpdate(BaseModel):
                 raise ValueError('Cannot be blank')
         return value
 
+    @model_validator(mode='after')
+    def non_nullable_fields_must_not_be_null(self):
+        if not self.model_fields_set:
+            raise ValueError('Provide at least one field to update.')
+        for field in ('title', 'subject', 'priority', 'completed'):
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(f'{field} cannot be null.')
+        return self
 
-class Task(TaskCreate):
+
+class Task(BaseModel):
+    # Strict response: don't invent fields that didn't come from PostgreSQL.
+    model_config = ConfigDict(extra='forbid')
     id: UUID
     user_id: UUID
+    title: str
+    subject: str
+    due: date | None
+    priority: Literal['High', 'Medium', 'Low']
+    completed: bool
     created_at: datetime
 
 
@@ -148,6 +162,10 @@ async def task_query(user: CurrentUser, method: str,
         result = response.json()
         if not isinstance(result, list):
             raise ValueError('Expected list')
+        # Defense in depth: refuse to show/update another user's returned records.
+        if any(not isinstance(row, dict) or row.get('user_id') != str(user.id) for row in result):
+            logger.error('Unexpected task owner in PostgREST response')
+            raise HTTPException(status_code=502, detail='Unexpected task ownership in storage response.')
         return result
     except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=502, detail='Unexpected task storage response.') from exc

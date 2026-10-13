@@ -17,6 +17,7 @@ import { AuthModal } from './components/AuthModal';
 function MainContent() {
   const { user, openAuthModal } = useAuth();
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [taskRefreshKey, setTaskRefreshKey] = useState(0);
 
   const handleOpenDashboard = () => {
     setIsDashboardOpen(true);
@@ -24,6 +25,8 @@ function MainContent() {
 
   const handleCloseDashboard = () => {
     setIsDashboardOpen(false);
+    // Refresh the homepage card after the student adds/updates/deletes a task.
+    setTaskRefreshKey((previous) => previous + 1);
   };
 
   const handleGetStarted = () => {
@@ -44,7 +47,7 @@ function MainContent() {
         <HeroSection onStartPlanning={handleOpenDashboard} />
 
         {/* 3. Scattered Product-Card Showcase */}
-        <ScatteredShowcase onOpenDashboard={handleOpenDashboard} />
+        <ScatteredShowcase onOpenDashboard={handleOpenDashboard} refreshKey={taskRefreshKey} />
 
         {/* 4. Purple Feature Section */}
         <PurpleFeatureSection onSeeDashboard={handleOpenDashboard} />

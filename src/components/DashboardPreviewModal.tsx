@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, Priority } from '../types/student';
-import { INITIAL_TASKS, SAMPLE_SUBJECTS, DAILY_SCHEDULE } from '../data/sampleData';
+import { SAMPLE_SUBJECTS, DAILY_SCHEDULE } from '../data/sampleData';
+import { fetchTasks, createTask, updateTask, deleteTask as apiDeleteTask } from '../lib/taskApi';
 import { SparkleIcon } from './SparkleIcon';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,6 +15,7 @@ import {
   Loader2,
   CheckCircle2,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 
 interface DashboardPreviewModalProps {
@@ -25,9 +27,21 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { user, loading: authLoading, openAuthModal, signOut } = useAuth();
+  const { user, session, loading: authLoading, openAuthModal, signOut } = useAuth();
 
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [taskState, setTaskState] = useState<{ ownerId: string | null; items: Task[] }>({
+    ownerId: null, items: [],
+  });
+  // Never render a previous account's tasks, even during the first render after login switching.
+  const tasks = user && taskState.ownerId === user.id ? taskState.items : [];
+  const currentOwner = useRef(user?.id ?? null);
+  const currentToken = useRef(session?.access_token ?? null);
+  currentOwner.current = user?.id ?? null;
+  currentToken.current = session?.access_token ?? null;
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [savingTask, setSavingTask] = useState(false);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'tasks' | 'schedule' | 'planner'>('tasks');
 
@@ -35,42 +49,127 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskSubject, setNewTaskSubject] = useState('MATH 204');
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
-  const [newTaskMinutes, setNewTaskMinutes] = useState(45);
+  const [newTaskDue, setNewTaskDue] = useState('');
 
-  // Clear user-specific application state on logout
+  // A new or signed-out session cannot display or overwrite another student's tasks.
   useEffect(() => {
-    if (!user) {
-      setTasks(INITIAL_TASKS);
-      setSelectedSubject('all');
-      setNewTaskTitle('');
+    let cancelled = false;
+    setSelectedSubject('all');
+    setNewTaskTitle('');
+    setNewTaskDue('');
+    setSavingTask(false);
+    setBusyTaskId(null);
+    setTaskError(null);
+    if (!user || !session) {
+      setTaskState({ ownerId: null, items: [] });
+      setLoadingTasks(false);
+      return;
     }
-  }, [user]);
+
+    const ownerId = user.id;
+    const accessToken = session.access_token;
+    setTaskState({ ownerId, items: [] });
+    setLoadingTasks(true);
+    fetchTasks(accessToken)
+      .then((items) => {
+        if (!cancelled && currentOwner.current === ownerId && currentToken.current === accessToken) {
+          setTaskState({ ownerId, items });
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled && currentOwner.current === ownerId && currentToken.current === accessToken) {
+          setTaskError(err instanceof Error ? err.message : 'Unable to load tasks.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled && currentOwner.current === ownerId && currentToken.current === accessToken) {
+          setLoadingTasks(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [user?.id, session?.access_token]);
 
   if (!isOpen) return null;
 
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  const toggleTask = async (id: string) => {
+    const task = tasks.find((item) => item.id === id);
+    if (!task || !session || !user || busyTaskId || savingTask || loadingTasks) return;
+    const ownerId = user.id;
+    const accessToken = session.access_token;
+    setBusyTaskId(id);
+    setTaskError(null);
+    try {
+      const saved = await updateTask(accessToken, id, { completed: !task.completed });
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskState((prev) => prev.ownerId === ownerId ? {
+          ownerId, items: prev.items.map((item) => item.id === id ? saved : item),
+        } : prev);
+      }
+    } catch (err) {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskError(err instanceof Error ? err.message : 'Unable to update task.');
+      }
+    } finally {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setBusyTaskId(null);
+      }
+    }
   };
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const removeTask = async (id: string) => {
+    if (!session || !user || busyTaskId || savingTask || loadingTasks) return;
+    const ownerId = user.id;
+    const accessToken = session.access_token;
+    setBusyTaskId(id);
+    setTaskError(null);
+    try {
+      await apiDeleteTask(accessToken, id);
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskState((prev) => prev.ownerId === ownerId ? {
+          ownerId, items: prev.items.filter((item) => item.id !== id),
+        } : prev);
+      }
+    } catch (err) {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskError(err instanceof Error ? err.message : 'Unable to delete task.');
+      }
+    } finally {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setBusyTaskId(null);
+      }
+    }
+  };
+
+  const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: newTaskTitle.trim(),
-      subject: newTaskSubject,
-      dueDate: 'Today',
-      dueTime: 'Pending',
-      estimatedMinutes: Number(newTaskMinutes) || 45,
-      priority: newTaskPriority,
-      completed: false,
-    };
-
-    setTasks([newTask, ...tasks]);
-    setNewTaskTitle('');
+    if (!newTaskTitle.trim() || !session || !user || savingTask || busyTaskId || loadingTasks) return;
+    const ownerId = user.id;
+    const accessToken = session.access_token;
+    setSavingTask(true);
+    setTaskError(null);
+    try {
+      const saved = await createTask(accessToken, {
+        title: newTaskTitle.trim(),
+        subject: newTaskSubject,
+        priority: newTaskPriority,
+        ...(newTaskDue ? { due: newTaskDue } : {}),
+      });
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskState((prev) => prev.ownerId === ownerId ? {
+          ownerId, items: [saved, ...prev.items],
+        } : prev);
+        setNewTaskTitle('');
+        setNewTaskDue('');
+      }
+    } catch (err) {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setTaskError(err instanceof Error ? err.message : 'Unable to create task.');
+      }
+    } finally {
+      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+        setSavingTask(false);
+      }
+    }
   };
 
   const filteredTasks =
@@ -96,7 +195,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
             <span>
               {user ? (
                 <>
-                  Authenticated as <strong className="text-white">{user.email}</strong> · Python/FastAPI task backend pending connection.
+                  Authenticated as <strong className="text-white">{user.email}</strong> · Tasks securely sync through FastAPI and Supabase RLS.
                 </>
               ) : (
                 <>
@@ -276,7 +375,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                         <span>Student Account: {user.email}</span>
                       </div>
                       <p className="text-slate-400 leading-relaxed text-[11px]">
-                        The database table <code className="font-mono text-violet-300 bg-white/5 px-1 py-0.5 rounded">public.tasks</code> with RLS is configured. The items below run in local interactive mode while the planned Python/FastAPI task backend is connected.
+                        The database table <code className="font-mono text-violet-300 bg-white/5 px-1 py-0.5 rounded">public.tasks</code> with RLS is configured. Your tasks are loaded from Supabase through FastAPI. Each user can access only their own tasks.
                       </p>
                     </div>
                   </div>
@@ -314,12 +413,20 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                         <option value="medium" className="bg-[#1a1a26]">Medium</option>
                         <option value="low" className="bg-[#1a1a26]">Low</option>
                       </select>
+                      <input
+                        type="date"
+                        aria-label="Optional task due date"
+                        value={newTaskDue}
+                        onChange={(e) => setNewTaskDue(e.target.value)}
+                        className="bg-[#1a1a26] border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                      />
                       <button
                         type="submit"
+                        disabled={savingTask || Boolean(busyTaskId) || loadingTasks}
                         className="px-4 py-2 bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Add</span>
+                        <span>{savingTask ? 'Saving...' : 'Add'}</span>
                       </button>
                     </div>
                   </form>
@@ -354,7 +461,15 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
 
                   {/* Tasks List */}
                   <div className="space-y-2">
-                    {filteredTasks.map((task) => (
+                    {loadingTasks && <p className="text-xs text-slate-400">Loading your tasks...</p>}
+                    {taskError && <p role="alert" className="text-xs text-rose-300">{taskError}</p>}
+                    {!loadingTasks && !taskError && tasks.length === 0 && (
+                      <p className="text-xs text-slate-400">No tasks yet. Add your first one above.</p>
+                    )}
+                    {!loadingTasks && !taskError && tasks.length > 0 && filteredTasks.length === 0 && (
+                      <p className="text-xs text-slate-400">No tasks match this subject.</p>
+                    )}
+                    {!loadingTasks && filteredTasks.map((task) => (
                       <div
                         key={task.id}
                         onClick={() => toggleTask(task.id)}
@@ -385,15 +500,13 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                             <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                               <span>{task.subject}</span>
                               <span>·</span>
-                              <span>{task.dueDate} {task.dueTime}</span>
+                              <span>{task.dueDate}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs font-mono text-slate-400">
-                            {task.estimatedMinutes}m
-                          </span>
+
                           <span
                             className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
                               task.priority === 'high'
@@ -405,6 +518,13 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                           >
                             {task.priority}
                           </span>
+                          <button
+                            type="button"
+                            disabled={busyTaskId === task.id}
+                            onClick={(event) => { event.stopPropagation(); void removeTask(task.id); }}
+                            aria-label={`Delete ${task.title}`}
+                            className="p-1.5 rounded-lg hover:bg-rose-950/50 text-slate-500 hover:text-rose-300 disabled:opacity-40"
+                          ><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </div>
                     ))}
@@ -416,7 +536,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                       Completion: <strong className="text-white">{completedCount}</strong> of {tasks.length}
                     </span>
                     <span className="font-mono text-violet-400">
-                      {Math.round((completedCount / tasks.length) * 100)}% Complete
+                      {tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0}% Complete
                     </span>
                   </div>
                 </div>
@@ -426,7 +546,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
               {activeTab === 'schedule' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-white">Daily Schedule Blocks</h3>
+                    <h3 className="text-sm font-semibold text-white">Sample Daily Schedule (demo)</h3>
                     <span className="text-xs text-slate-400 font-mono">Today: 4h 45m scheduled</span>
                   </div>
                   <div className="space-y-3">
