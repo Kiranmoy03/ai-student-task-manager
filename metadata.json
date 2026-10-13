@@ -1,0 +1,6 @@
+{
+  "name": "Student Task Manager",
+  "description": "Cinematic, interactive student productivity website with particle-ring canvas, spatial cards, and intuitive study workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
