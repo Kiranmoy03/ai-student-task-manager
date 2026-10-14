@@ -2,8 +2,38 @@ import { Priority, Task, StudyPlan } from '../types/student';
 
 // Local: VITE_API_BASE_URL=http://localhost:8000
 // Hosted site: VITE_API_BASE_URL=https://your-deployed-fastapi.example
-const configuredUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
-const API_BASE_URL = (configuredUrl || (import.meta.env.DEV ? 'http://localhost:8000' : '')).replace(/\/+$/, '');
+function normalizeUrl(url?: string): string {
+  if (!url) return '';
+  let trimmed = url.trim();
+  if (!trimmed) return '';
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+  return trimmed.replace(/\/+$/, '');
+}
+
+export function getApiBaseUrl(): string {
+  const configured = normalizeUrl(import.meta.env.VITE_API_BASE_URL as string | undefined);
+  if (configured) {
+    return configured;
+  }
+  // When running locally in browser (localhost/127.0.0.1)
+  if (typeof window !== 'undefined') {
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+    if (isLocalhost) {
+      return 'http://localhost:8000';
+    }
+  } else if (import.meta.env.DEV) {
+    return 'http://localhost:8000';
+  }
+  return '';
+}
+
+export function isApiConfigured(): boolean {
+  return Boolean(getApiBaseUrl());
+}
 
 type ApiPriority = 'High' | 'Medium' | 'Low';
 type ApiTask = {
@@ -34,13 +64,31 @@ function toTask(row: ApiTask): Task {
 }
 
 async function request<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  if (!API_BASE_URL || (import.meta.env.PROD && !API_BASE_URL.startsWith('https://'))) {
-    throw new Error('Task API is not configured. Set VITE_API_BASE_URL to your HTTPS FastAPI URL.');
+  const baseUrl = getApiBaseUrl();
+
+  if (!baseUrl) {
+    throw new Error(
+      'Task API is not configured. Set VITE_API_BASE_URL in your environment to your deployed HTTPS FastAPI backend URL.'
+    );
   }
+
+  // Prevent mixed-content blocking when frontend runs over HTTPS
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+      throw new Error(
+        'Cannot connect to local HTTP FastAPI from an HTTPS site due to browser mixed-content restrictions. Deploy FastAPI with HTTPS or run the frontend locally at http://localhost:3000.'
+      );
+    }
+    throw new Error(
+      'Task API URL must use HTTPS when loaded over an HTTPS page. Update VITE_API_BASE_URL to use https://.'
+    );
+  }
+
   if (!token) throw new Error('Please sign in to manage tasks.');
+
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -49,7 +97,10 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
       },
     });
   } catch {
-    throw new Error('Cannot reach the task API. Check that FastAPI is running and its URL is configured.');
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    throw new Error(
+      `Cannot reach the task API at ${baseUrl}. Ensure FastAPI is running and CORS_ORIGINS on the backend allows ${currentOrigin || 'this origin'}.`
+    );
   }
   if (!response.ok) {
     if (response.status === 401) throw new Error('Your session expired. Please sign in again.');
