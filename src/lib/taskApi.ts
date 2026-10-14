@@ -135,10 +135,27 @@ export async function createTask(token: string, task: {
   return toTask(row);
 }
 
-export async function updateTask(token: string, taskId: string, changes: { completed: boolean }): Promise<Task> {
+export async function updateTask(
+  token: string,
+  taskId: string,
+  changes: {
+    title?: string;
+    subject?: string;
+    priority?: Priority;
+    due?: string | null;
+    completed?: boolean;
+  }
+): Promise<Task> {
+  const payload: Record<string, unknown> = {};
+  if (changes.title !== undefined) payload.title = changes.title;
+  if (changes.subject !== undefined) payload.subject = changes.subject;
+  if (changes.priority !== undefined) payload.priority = apiPriority[changes.priority];
+  if (changes.due !== undefined) payload.due = changes.due;
+  if (changes.completed !== undefined) payload.completed = changes.completed;
+
   const row = await request<ApiTask>(token, `/api/tasks/${encodeURIComponent(taskId)}`, {
     method: 'PATCH',
-    body: JSON.stringify(changes),
+    body: JSON.stringify(payload),
   });
   return toTask(row);
 }

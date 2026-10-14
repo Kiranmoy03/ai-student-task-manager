@@ -33,6 +33,7 @@ import {
   TrendingUp,
   Flame,
   Lightbulb,
+  Pencil,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -72,12 +73,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
-  // Add Task Modal / Drawer State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskSubject, setNewTaskSubject] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
-  const [newTaskDue, setNewTaskDue] = useState('');
+  // Unified Add / Edit Task Modal State
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskFormTitle, setTaskFormTitle] = useState('');
+  const [taskFormSubject, setTaskFormSubject] = useState('');
+  const [taskFormPriority, setTaskFormPriority] = useState<Priority>('medium');
+  const [taskFormDue, setTaskFormDue] = useState('');
+  const [taskFormDueTime, setTaskFormDueTime] = useState('');
 
   // AI Smart Study Planner State
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
@@ -212,38 +215,107 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   };
 
-  // Add task (free-text subject input!)
-  const handleCreateTask = async (e: React.FormEvent) => {
+  // Open modal to add a new task
+  const handleOpenAddModal = () => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+    setEditingTaskId(null);
+    setTaskFormTitle('');
+    setTaskFormSubject('');
+    setTaskFormPriority('medium');
+    setTaskFormDue('');
+    setTaskFormDueTime('');
+    setTaskError(null);
+    setIsTaskModalOpen(true);
+  };
+
+  // Open modal to edit an existing task
+  const handleOpenEditModal = (task: Task) => {
+    if (!user) {
+      openAuthModal('login');
+      return;
+    }
+    setEditingTaskId(task.id);
+    setTaskFormTitle(task.title);
+    setTaskFormSubject(task.subject);
+    setTaskFormPriority(task.priority);
+    setTaskFormDue(task.dueDate && task.dueDate !== 'No deadline' ? task.dueDate : '');
+    setTaskFormDueTime(task.dueTime || '');
+    setTaskError(null);
+    setIsTaskModalOpen(true);
+  };
+
+  // Close unified modal
+  const handleCloseTaskModal = () => {
+    setIsTaskModalOpen(false);
+    setEditingTaskId(null);
+  };
+
+  // Create or Update task (reused modal submit handler)
+  const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim() || !session || !user || savingTask || busyTaskId || loadingTasks) return;
+    if (!taskFormTitle.trim() || !session || !user || savingTask || busyTaskId || loadingTasks) return;
 
     const ownerId = user.id;
     const accessToken = session.access_token;
-    const subjectToSave = newTaskSubject.trim() || 'General';
+    const subjectToSave = taskFormSubject.trim() || 'General';
 
     setSavingTask(true);
     setTaskError(null);
 
     try {
-      const created = await createTask(accessToken, {
-        title: newTaskTitle.trim(),
-        subject: subjectToSave,
-        priority: newTaskPriority,
-        ...(newTaskDue ? { due: newTaskDue } : {}),
-      });
+      if (editingTaskId) {
+        // Edit mode: PATCH existing task
+        const updated = await updateTask(accessToken, editingTaskId, {
+          title: taskFormTitle.trim(),
+          subject: subjectToSave,
+          priority: taskFormPriority,
+          due: taskFormDue.trim() ? taskFormDue.trim() : null,
+        });
 
-      if (currentOwner.current === ownerId && currentToken.current === accessToken) {
-        setTaskState((prev) =>
-          prev.ownerId === ownerId ? { ownerId, items: [created, ...prev.items] } : prev
-        );
-        setNewTaskTitle('');
-        setNewTaskSubject('');
-        setNewTaskDue('');
-        setIsAddModalOpen(false);
+        if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+          setTaskState((prev) =>
+            prev.ownerId === ownerId
+              ? {
+                  ownerId,
+                  items: prev.items.map((item) => (item.id === editingTaskId ? updated : item)),
+                }
+              : prev
+          );
+          setIsTaskModalOpen(false);
+          setEditingTaskId(null);
+          setTaskFormTitle('');
+          setTaskFormSubject('');
+          setTaskFormDue('');
+          setTaskFormDueTime('');
+        }
+      } else {
+        // Create mode: POST new task
+        const created = await createTask(accessToken, {
+          title: taskFormTitle.trim(),
+          subject: subjectToSave,
+          priority: taskFormPriority,
+          ...(taskFormDue.trim() ? { due: taskFormDue.trim() } : {}),
+        });
+
+        if (currentOwner.current === ownerId && currentToken.current === accessToken) {
+          setTaskState((prev) =>
+            prev.ownerId === ownerId ? { ownerId, items: [created, ...prev.items] } : prev
+          );
+          setIsTaskModalOpen(false);
+          setTaskFormTitle('');
+          setTaskFormSubject('');
+          setTaskFormDue('');
+          setTaskFormDueTime('');
+        }
       }
     } catch (err) {
       if (currentOwner.current === ownerId && currentToken.current === accessToken) {
-        setTaskError(err instanceof Error ? err.message : 'Unable to create task.');
+        setTaskError(
+          err instanceof Error ? err.message : editingTaskId ? 'Unable to update task.' : 'Unable to create task.'
+        );
       }
     } finally {
       if (currentOwner.current === ownerId && currentToken.current === accessToken) {
@@ -330,8 +402,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="p-1.5 rounded-lg bg-violet-600 text-white text-xs"
+            onClick={handleOpenAddModal}
+            className="p-1.5 rounded-lg bg-violet-600 text-white text-xs cursor-pointer hover:bg-violet-500 transition-colors"
             title="Add task"
           >
             <Plus className="w-4 h-4" />
@@ -552,7 +624,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(true)}
+                  onClick={handleOpenAddModal}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md shadow-violet-900/20 transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
@@ -717,7 +789,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span
                             className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-md ${
                               task.priority === 'high'
@@ -729,6 +801,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           >
                             {task.priority}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(task)}
+                            disabled={busyTaskId === task.id || savingTask}
+                            className="p-1 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors cursor-pointer"
+                            title="Edit task"
+                            aria-label={`Edit ${task.title}`}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -781,7 +863,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={handleOpenAddModal}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md shadow-violet-900/20 transition-all cursor-pointer self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4" />
@@ -926,7 +1008,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(true)}
+                  onClick={handleOpenAddModal}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-500 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -978,7 +1060,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-md ${
                           task.priority === 'high'
@@ -993,10 +1075,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                       <button
                         type="button"
+                        onClick={() => handleOpenEditModal(task)}
+                        disabled={busyTaskId === task.id || savingTask}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors cursor-pointer"
+                        title="Edit task"
+                        aria-label={`Edit ${task.title}`}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => handleRemoveTask(task.id)}
-                        disabled={busyTaskId === task.id}
+                        disabled={busyTaskId === task.id || savingTask}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
                         title="Delete task"
+                        aria-label={`Delete ${task.title}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1291,110 +1385,150 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </main>
 
-      {/* ADD TASK MODAL (Clean, with free-text Subject input) */}
-      {isAddModalOpen && (
+      {/* UNIFIED TASK MODAL (Add New Task & Edit Task) */}
+      {isTaskModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg rounded-2xl bg-[#12121A] border border-white/10 p-6 shadow-2xl text-white space-y-5">
+          <div className="relative w-full max-w-lg rounded-2xl bg-[#12121A] border border-white/10 p-6 shadow-2xl text-white space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">Add New Task</h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                  {editingTaskId ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">
+                    {editingTaskId ? 'Edit Task' : 'Add New Task'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {editingTaskId
+                      ? 'Update assignment details, priority, or deadline.'
+                      : 'Plan coursework, problem sets, and milestones.'}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                onClick={handleCloseTaskModal}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05] transition-colors cursor-pointer"
+                aria-label="Close modal"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-4">
+            <form onSubmit={handleSaveTask} className="space-y-4">
               {/* Task Title */}
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300">Assignment Title *</label>
                 <input
                   type="text"
                   required
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  placeholder="e.g. Read Chapter 4 on Thermodynamics"
+                  value={taskFormTitle}
+                  onChange={(e) => setTaskFormTitle(e.target.value)}
+                  placeholder="Complete ML Assignment"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500"
                 />
               </div>
 
-              {/* Custom Subject Input (Free text input!) */}
+              {/* Course / Subject (Free text entry, allows any subject name) */}
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300">
-                  Course / Subject * <span className="text-[11px] text-slate-500 font-normal">(Type any subject)</span>
+                  Course or Subject *
                 </label>
                 <input
                   type="text"
                   required
-                  value={newTaskSubject}
-                  onChange={(e) => setNewTaskSubject(e.target.value)}
-                  placeholder="e.g. BIO 140, Linear Algebra, Computer Science"
+                  value={taskFormSubject}
+                  onChange={(e) => setTaskFormSubject(e.target.value)}
+                  placeholder="Machine Learning"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-500"
                 />
-                {/* Existing subject suggestion chips */}
-                {existingSubjects.length > 0 && (
-                  <div className="pt-1.5 flex flex-wrap gap-1.5 items-center">
-                    <span className="text-[10px] text-slate-500">Quick select:</span>
-                    {existingSubjects.slice(0, 5).map((sub) => (
-                      <button
-                        key={sub}
-                        type="button"
-                        onClick={() => setNewTaskSubject(sub)}
-                        className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-violet-600/30 text-slate-300 hover:text-violet-200 border border-white/5 transition-colors cursor-pointer"
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Priority & Due Date */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Priority Selection */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-300">Priority</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['low', 'medium', 'high'] as Priority[]).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setTaskFormPriority(p)}
+                      className={`py-2 px-3 rounded-xl text-xs font-medium capitalize border transition-all cursor-pointer ${
+                        taskFormPriority === p
+                          ? p === 'high'
+                            ? 'bg-rose-500/20 border-rose-500/40 text-rose-200'
+                            : p === 'medium'
+                            ? 'bg-violet-600/30 border-violet-500/50 text-violet-200'
+                            : 'bg-slate-500/20 border-slate-400/40 text-slate-200'
+                          : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Due Date & Optional Due Time Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Priority</label>
-                  <select
-                    value={newTaskPriority}
-                    onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#161622] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500 cursor-pointer"
-                  >
-                    <option value="low">Low Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="high">High Priority</option>
-                  </select>
+                  <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                    <span>Due Date</span>
+                    <span className="text-[10px] text-slate-500">Optional</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={taskFormDue}
+                    onChange={(e) => setTaskFormDue(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500 cursor-pointer"
+                  />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Due Date</label>
+                  <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                    <span>Due Time</span>
+                    <span className="text-[10px] text-violet-400 font-mono">Optional</span>
+                  </label>
                   <input
-                    type="date"
-                    value={newTaskDue}
-                    onChange={(e) => setNewTaskDue(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500"
+                    type="time"
+                    value={taskFormDueTime}
+                    onChange={(e) => setTaskFormDueTime(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white focus:outline-none focus:border-violet-500 cursor-pointer"
                   />
                 </div>
               </div>
 
+              {/* Explanatory notice regarding persistent due-time storage */}
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-start gap-2.5 text-[11px] text-slate-400 leading-relaxed">
+                <Clock className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
+                <span>
+                  Due Date is securely stored in Supabase PostgreSQL (<code>due date</code>). Persistent time-of-day storage requires adding a <code>due_time time</code> column to the database schema.
+                </span>
+              </div>
+
               {/* Form Buttons */}
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={handleCloseTaskModal}
                   className="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={savingTask || !newTaskTitle.trim()}
+                  disabled={savingTask || !taskFormTitle.trim()}
                   className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
                 >
                   {savingTask ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving...</span>
+                      <span>{editingTaskId ? 'Updating...' : 'Saving...'}</span>
+                    </>
+                  ) : editingTaskId ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Update Task</span>
                     </>
                   ) : (
                     <>

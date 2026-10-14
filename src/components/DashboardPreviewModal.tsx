@@ -66,7 +66,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
 
   // New task form state
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskSubject, setNewTaskSubject] = useState('MATH 204');
+  const [newTaskSubject, setNewTaskSubject] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
   const [newTaskDue, setNewTaskDue] = useState('');
 

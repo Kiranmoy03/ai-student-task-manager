@@ -92,9 +92,9 @@ export const CleanHero: React.FC<CleanHeroProps> = ({ onGetStarted, onOpenDashbo
                   <CheckCircle2 className="w-3.5 h-3.5" />
                 </div>
                 <div className="space-y-1 min-w-0">
-                  <p className="text-xs font-medium text-slate-200 truncate">Linear Algebra Problem Set 4</p>
+                  <p className="text-xs font-medium text-slate-200 truncate">Complete ML Assignment</p>
                   <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                    <span className="text-violet-300">MATH 204</span>
+                    <span className="text-violet-300">Machine Learning</span>
                     <span>·</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Today</span>
                   </div>
