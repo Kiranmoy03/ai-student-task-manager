@@ -5,63 +5,68 @@
 
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { FloatingNav } from './components/FloatingNav';
-import { HeroSection } from './components/HeroSection';
-import { ScatteredShowcase } from './components/ScatteredShowcase';
-import { PurpleFeatureSection } from './components/PurpleFeatureSection';
-import { WhiteRotatingCardsSection } from './components/WhiteRotatingCardsSection';
-import { SimpleEnding } from './components/SimpleEnding';
-import { DashboardPreviewModal } from './components/DashboardPreviewModal';
+import { DashboardView } from './components/DashboardView';
+import { CleanNavbar } from './components/CleanNavbar';
+import { CleanHero } from './components/CleanHero';
+import { CleanFeatures } from './components/CleanFeatures';
 import { AuthModal } from './components/AuthModal';
 
 function MainContent() {
   const { user, openAuthModal } = useAuth();
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [dashboardTab, setDashboardTab] = useState<'tasks' | 'schedule' | 'planner'>('tasks');
-  const [taskRefreshKey, setTaskRefreshKey] = useState(0);
-
-  const handleOpenDashboard = (tab: 'tasks' | 'schedule' | 'planner' = 'tasks') => {
-    setDashboardTab(tab);
-    setIsDashboardOpen(true);
-  };
-
-  const handleCloseDashboard = () => {
-    setIsDashboardOpen(false);
-    // Refresh the homepage card after the student adds/updates/deletes a task.
-    setTaskRefreshKey((previous) => previous + 1);
-  };
-
-  const handleGetStarted = () => {
-    if (user) {
-      setIsDashboardOpen(true);
-    } else {
-      openAuthModal('signup');
-    }
-  };
+  // Default to the full-page dashboard experience
+  const [view, setView] = useState<'dashboard' | 'landing'>('dashboard');
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-slate-100 flex flex-col selection:bg-violet-600 selection:text-white">
-      <FloatingNav onOpenDashboard={handleOpenDashboard} />
+    <div className="min-h-screen bg-[#09090D] text-slate-100 flex flex-col selection:bg-violet-600 selection:text-white">
+      {view === 'landing' ? (
+        <>
+          <CleanNavbar
+            onGetStarted={() => {
+              if (user) {
+                setView('dashboard');
+              } else {
+                openAuthModal('signup');
+              }
+            }}
+            onOpenDashboard={() => setView('dashboard')}
+          />
 
-      <main className="flex-1 w-full flex flex-col">
-        <HeroSection onStartPlanning={handleOpenDashboard} />
+          <main className="flex-1 w-full flex flex-col">
+            <CleanHero
+              onGetStarted={() => {
+                if (user) {
+                  setView('dashboard');
+                } else {
+                  openAuthModal('signup');
+                }
+              }}
+              onOpenDashboard={() => setView('dashboard')}
+            />
+            <CleanFeatures />
+          </main>
 
-        <ScatteredShowcase onOpenDashboard={handleOpenDashboard} refreshKey={taskRefreshKey} />
+          <footer className="py-8 px-4 border-t border-white/[0.06] text-center text-xs text-slate-500">
+            <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-slate-400 font-medium">TaskFlow AI · Student Task Manager</span>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setView('dashboard')}
+                  className="hover:text-violet-300 transition-colors cursor-pointer text-slate-400"
+                >
+                  Go to Dashboard
+                </button>
+                <span>·</span>
+                <span>FastAPI + Supabase Auth + Gemini AI</span>
+              </div>
+            </div>
+          </footer>
+        </>
+      ) : (
+        <DashboardView onViewLanding={() => setView('landing')} />
+      )}
 
-        <PurpleFeatureSection onSeeDashboard={handleOpenDashboard} />
-
-        <WhiteRotatingCardsSection />
-
-        <SimpleEnding onGetStarted={handleGetStarted} />
-      </main>
-
-      <DashboardPreviewModal
-        isOpen={isDashboardOpen}
-        onClose={handleCloseDashboard}
-        initialTab={dashboardTab}
-      />
-
-      <AuthModal onAuthSuccess={() => setIsDashboardOpen(true)} />
+      <AuthModal onAuthSuccess={() => setView('dashboard')} />
     </div>
   );
 }

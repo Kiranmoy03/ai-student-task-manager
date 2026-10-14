@@ -32,11 +32,8 @@ export const CleanNavbar: React.FC<CleanNavbarProps> = ({ onGetStarted, onOpenDa
           <a href="#how-it-works" className="hover:text-white transition-colors">
             How It Works
           </a>
-          <a href="#ai-planner" className="hover:text-white transition-colors flex items-center gap-1.5">
-            <span>AI Planner</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
-              3.5
-            </span>
+          <a href="#ai-planner" className="hover:text-white transition-colors">
+            AI Planner
           </a>
         </nav>
 

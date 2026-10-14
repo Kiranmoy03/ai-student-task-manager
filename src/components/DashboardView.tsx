@@ -44,7 +44,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onViewLanding,
   initialTab = 'dashboard',
 }) => {
-  const { user, session, signOut } = useAuth();
+  const { user, session, signOut, openAuthModal } = useAuth();
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tasks' | 'planner' | 'settings'>(initialTab);
@@ -443,25 +443,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Bottom Profile Card */}
         <div className="pt-4 mt-auto border-t border-white/[0.06] space-y-2">
-          <div className="px-3 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white text-xs font-bold uppercase shrink-0">
-                {studentName[0] || 'S'}
+          {user ? (
+            <div className="px-3 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white text-xs font-bold uppercase shrink-0">
+                  {studentName[0] || 'S'}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-200 truncate">{studentName}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-200 truncate">{studentName}</p>
-                <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer shrink-0"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer shrink-0"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          ) : (
+            <div className="px-3 py-2.5 rounded-xl bg-violet-950/30 border border-violet-500/20 flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-violet-200">Guest Student</p>
+                <p className="text-[10px] text-slate-400">Sign in to sync tasks</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="px-2.5 py-1 rounded-lg text-xs bg-violet-600 hover:bg-violet-500 text-white font-medium transition-colors cursor-pointer shrink-0"
+              >
+                Sign In
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
