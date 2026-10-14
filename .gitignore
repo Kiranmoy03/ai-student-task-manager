@@ -1,8 +1,29 @@
+# Dependencies and build output
 node_modules/
 build/
 dist/
 coverage/
-.DS_Store
 *.log
+
+# Private local configuration and credentials
 .env*
 !.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+
+# Python virtual environments, caches and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

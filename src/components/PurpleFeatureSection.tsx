@@ -26,7 +26,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
       className="relative my-8 sm:my-14 mx-3 sm:mx-6 lg:mx-10 rounded-[2.5rem] lg:rounded-[3.5rem] bg-gradient-to-b from-[#090611] via-[#160b2e] to-[#240c4a] border border-violet-800/30 text-white overflow-hidden py-20 sm:py-28 px-6 sm:px-12 lg:px-20 scroll-mt-[110px]"
       aria-label="Features: Daily Student Schedule"
     >
-      {/* Soft Purple Glow near bottom */}
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[360px] pointer-events-none opacity-70 blur-3xl"
         style={{
@@ -35,9 +34,7 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
       />
 
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center min-h-[580px]">
-        {/* Left Column: Upper Heading + Lower Supporting Text & Button */}
         <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-12">
-          {/* Upper-Left Heading */}
           <div>
             <span className="text-xs font-semibold uppercase tracking-widest text-violet-300 mb-4 inline-block">
               Daily Structured Rhythm
@@ -49,7 +46,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
             </h2>
           </div>
 
-          {/* Lower-Left Supporting Text and CTA */}
           <div className="space-y-6 max-w-lg">
             <p className="text-base sm:text-lg text-violet-100/80 leading-relaxed font-light">
               Time-blocking structured for university terms. Balance heavy assignment problem sets with spaced review intervals so you stay ahead without burn-out.
@@ -68,7 +64,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
           </div>
         </div>
 
-        {/* Right Column: Tall Tilted Product-Preview Card showing daily student schedule */}
         <div
           className="lg:col-span-6 flex justify-center lg:justify-end perspective-1000"
           onMouseMove={handleMouseMove}
@@ -80,7 +75,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
               transform: `rotateY(${-6 + tilt.x}deg) rotateX(${4 + tilt.y}deg) scale(1)`,
             }}
           >
-            {/* Card Header */}
             <div className="flex items-center justify-between pb-5 border-b border-white/10 mb-5">
               <div>
                 <span className="text-[11px] font-mono text-violet-300 uppercase tracking-wider block">
@@ -96,7 +90,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
               </div>
             </div>
 
-            {/* Daily Schedule Blocks */}
             <div className="space-y-3.5">
               {DAILY_SCHEDULE.map((item, idx) => (
                 <div
@@ -141,7 +134,6 @@ export const PurpleFeatureSection: React.FC<PurpleFeatureSectionProps> = ({ onSe
               ))}
             </div>
 
-            {/* Card Footer status */}
             <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-violet-300/80">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-violet-400" />

@@ -46,10 +46,8 @@ export const WhiteRotatingCardsSection: React.FC = () => {
       id="how-it-works"
       className="pillars-section relative w-full min-h-[160vh] lg:min-h-[190vh] my-6"
     >
-      {/* Sticky Bounded Container */}
       <div className="sticky top-20 md:top-24 min-h-[85vh] flex flex-col justify-between py-10 sm:py-14 px-4 sm:px-8 lg:px-12 bg-white text-slate-900 rounded-[2.5rem] lg:rounded-[3.5rem] border border-slate-200/90 shadow-2xl mx-3 sm:mx-6 lg:mx-10">
         
-        {/* Upper Background Headline */}
         <div className="w-full text-center pt-2 select-none relative z-10">
           <span className="text-xs uppercase tracking-widest text-violet-600 font-semibold mb-2 block">
             Three Continuous Pillars
@@ -62,11 +60,9 @@ export const WhiteRotatingCardsSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Desktop 2D Stack-to-Fan-out Arena (Prevents 3D polygon cutting glitches) */}
         <div className="hidden lg:flex relative w-full flex-1 items-center justify-center my-6 py-6 min-h-[540px]">
           <div className="relative w-full max-w-[1180px] h-[520px] flex items-center justify-center">
 
-            {/* 1. LEFT CARD — "Organize" (Stacked behind center on left, fans out to Left column) */}
             <div
               className="absolute w-[340px] h-[500px] rounded-[2.2rem] bg-[#0d0e17] text-white p-7 border border-slate-800 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out select-none"
               style={{
@@ -107,7 +103,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. CENTER FRONT CARD — "Prioritize" (Spec: Pale pink and bright violet blending to near-black) */}
             <div
               className="absolute w-[350px] h-[510px] rounded-[2.2rem] p-7 shadow-[0_25px_60px_rgba(0,0,0,0.35)] flex flex-col justify-between transition-transform duration-300 ease-out select-none border border-violet-300/40"
               style={{
@@ -117,7 +112,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
                 zIndex: 30, // Always stays above when stacked; equal presence when expanded
               }}
             >
-              {/* Inside Front Card Header */}
               <div>
                 <div className="flex items-center justify-between text-slate-900 font-medium pb-4">
                   <div className="flex items-center gap-2">
@@ -133,7 +127,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Decorative Question Pill */}
                 <div className="mt-7 text-center relative">
                   <button
                     type="button"
@@ -146,7 +139,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
                     <Info className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
-                  {/* Informational notice */}
                   {showPillNotice && (
                     <div className="absolute left-1/2 -translate-x-1/2 top-14 w-64 bg-slate-950/95 text-slate-200 text-[11px] p-3 rounded-2xl border border-violet-500/40 shadow-2xl z-40">
                       <p className="font-medium text-white mb-1">Coming Soon</p>
@@ -164,7 +156,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
                 </div>
               </div>
 
-              {/* Inside Front Card Center Feature Highlights */}
               <div className="my-3 text-center px-2">
                 <div className="inline-block px-3 py-1 rounded-full bg-white/20 border border-white/30 text-white text-[11px] font-semibold mb-2">
                   Intelligent Urgency Scoring
@@ -174,7 +165,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
                 </p>
               </div>
 
-              {/* Inside Front Card Bottom Text */}
               <div className="pt-4 border-t border-white/20 text-center">
                 <p className="text-xs sm:text-sm font-light text-white tracking-tight leading-snug">
                   Tasks, deadlines and study goals — in one workspace.
@@ -182,7 +172,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. RIGHT CARD — "Track" (Stacked behind center on right, fans out to Right column) */}
             <div
               className="absolute w-[340px] h-[500px] rounded-[2.2rem] bg-[#0c0d14] text-white p-7 border border-slate-800 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out select-none"
               style={{
@@ -226,9 +215,7 @@ export const WhiteRotatingCardsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile / Tablet Vertical Layout (Prompt: On mobile, use a vertical layout with gentle entry animations) */}
         <div className="lg:hidden flex flex-col gap-6 my-6">
-          {/* Card 1: Prioritize */}
           <div
             className="w-full rounded-[2rem] p-6 text-white border border-violet-300/40 shadow-xl"
             style={{
@@ -257,7 +244,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
             </p>
           </div>
 
-          {/* Card 2: Organize */}
           <div className="w-full rounded-[2rem] bg-[#0d0e17] text-white p-6 border border-slate-800 shadow-xl">
             <div className="flex items-center justify-between text-xs font-mono text-violet-400 mb-3">
               <span>Pillar 01</span>
@@ -269,7 +255,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
             </p>
           </div>
 
-          {/* Card 3: Track */}
           <div className="w-full rounded-[2rem] bg-[#0c0d14] text-white p-6 border border-slate-800 shadow-xl">
             <div className="flex items-center justify-between text-xs font-mono text-emerald-400 mb-3">
               <span>Pillar 03</span>
@@ -282,7 +267,6 @@ export const WhiteRotatingCardsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Accessibility & Quick Scrub Controls at Bottom of Sticky Section */}
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
           <div className="flex items-center gap-4">
             <span className="font-mono text-[11px] tabular-nums">

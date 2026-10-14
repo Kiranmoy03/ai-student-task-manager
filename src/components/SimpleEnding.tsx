@@ -14,7 +14,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
       aria-label="Overview and Next Steps"
     >
       <div className="max-w-5xl mx-auto">
-        {/* Concise Three-Step Section: Add tasks → Set priorities → Track progress */}
         <div className="mb-24">
           <div className="text-center mb-12">
             <span className="text-xs uppercase font-semibold tracking-widest text-violet-400 block mb-2">
@@ -26,7 +25,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Step 1 */}
             <div className="rounded-3xl bg-[#0f0f17] border border-white/10 p-7 space-y-4 hover:border-violet-500/40 transition-colors">
               <div className="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
                 <PlusCircle className="w-5 h-5" />
@@ -40,7 +38,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
               </p>
             </div>
 
-            {/* Step 2 */}
             <div className="rounded-3xl bg-[#0f0f17] border border-white/10 p-7 space-y-4 hover:border-violet-500/40 transition-colors">
               <div className="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
                 <SlidersHorizontal className="w-5 h-5" />
@@ -54,7 +51,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
               </p>
             </div>
 
-            {/* Step 3 */}
             <div className="rounded-3xl bg-[#0f0f17] border border-white/10 p-7 space-y-4 hover:border-violet-500/40 transition-colors">
               <div className="w-10 h-10 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
                 <LineChart className="w-5 h-5" />
@@ -70,7 +66,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
           </div>
         </div>
 
-        {/* Final CTA: “Make your next step clear” */}
         <div className="text-center py-16 px-6 rounded-[2.5rem] bg-gradient-to-b from-[#131024] to-[#0a0814] border border-violet-800/30 relative overflow-hidden mb-20 shadow-2xl">
           <div className="absolute inset-0 bg-radial from-violet-600/10 via-transparent to-transparent pointer-events-none" />
           
@@ -94,7 +89,6 @@ export const SimpleEnding: React.FC<SimpleEndingProps> = ({ onGetStarted }) => {
           </div>
         </div>
 
-        {/* Minimal Footer */}
         <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-2 text-slate-400 font-medium">
             <SparkleIcon size={14} className="text-white" />

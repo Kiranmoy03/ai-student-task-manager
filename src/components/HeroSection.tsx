@@ -16,7 +16,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartPlanning }) => 
       className="relative min-h-screen w-full bg-[#070709] text-white flex flex-col justify-between pt-24 pb-12 px-6 sm:px-10 lg:px-16 overflow-hidden select-none"
       aria-label="Student Task Manager Hero"
     >
-      {/* Subtle background radial ambient gradient */}
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
         style={{
@@ -25,14 +24,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartPlanning }) => 
         }}
       />
 
-      {/* Three.js Particle Ring Canvas */}
       <ParticleRingCanvas
         onPointerMoveCoords={(coords) => {
           setPointerOffset({ x: coords.x * 12, y: coords.y * 12 });
         }}
       />
 
-      {/* Central 4-Point White Sparkle in hollow ring center */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
         <div
           className="relative flex items-center justify-center transition-transform duration-700 ease-out"
@@ -46,7 +43,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartPlanning }) => 
         </div>
       </div>
 
-      {/* Upper-Left Oversized Headline: "Less overwhelm" */}
       <div
         className="relative z-20 pt-8 sm:pt-12 max-w-3xl pointer-events-none transition-transform duration-500 ease-out"
         style={{
@@ -58,9 +54,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartPlanning }) => 
         </h1>
       </div>
 
-      {/* Lower Zone: Left Intro Text & Buttons + Lower-Right "More progress" */}
       <div className="relative z-20 flex flex-col md:flex-row items-start md:items-end justify-between gap-8 sm:gap-12 pb-4">
-        {/* Lower-Left Introduction and Actions */}
         <div className="max-w-md lg:max-w-lg space-y-6">
           <p className="text-base sm:text-lg md:text-xl font-light text-slate-300/90 leading-relaxed tracking-tight">
             Bring your tasks, deadlines and study goals into one clear workspace.
@@ -86,7 +80,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStartPlanning }) => 
           </div>
         </div>
 
-        {/* Lower-Right Oversized Text: "More progress" */}
         <div
           className="text-right self-end md:self-auto transition-transform duration-500 ease-out pointer-events-none"
           style={{

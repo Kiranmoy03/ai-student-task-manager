@@ -232,7 +232,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
     >
       <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-[#0e0e16] border border-violet-500/30 text-white shadow-2xl overflow-hidden">
         
-        {/* Supabase Auth & Backend Boundary Notice Banner */}
         <div className="px-5 py-2.5 bg-violet-950/80 border-b border-violet-800/40 flex flex-wrap items-center justify-between gap-2 text-xs text-violet-200">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-violet-400 shrink-0" />
@@ -262,7 +261,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-md">
@@ -279,7 +277,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
           <div className="flex items-center gap-3">
             {user && (
               <>
-                {/* View Switcher Tabs (Only shown when authenticated) */}
                 <div className="hidden sm:flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10 text-xs">
                   <button
                     onClick={() => setActiveTab('tasks')}
@@ -307,7 +304,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                   </button>
                 </div>
 
-                {/* Sign out button */}
                 <button
                   type="button"
                   onClick={() => signOut()}
@@ -330,7 +326,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
           </div>
         </div>
 
-        {/* PROTECTED STATE: Signed-out view (Requirement: signed-out users should see login) */}
         {authLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
@@ -381,9 +376,7 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
             </div>
           </div>
         ) : (
-          /* AUTHENTICATED USER DASHBOARD CONTENT */
           <>
-            {/* Mobile Tabs */}
             <div className="sm:hidden flex border-b border-white/10 px-4 py-2 gap-2 text-xs">
               <button
                 onClick={() => setActiveTab('tasks')}
@@ -405,13 +398,10 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
               </button>
             </div>
 
-            {/* Modal Body Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               
-              {/* TAB 1: TASKS */}
               {activeTab === 'tasks' && (
                 <div className="space-y-6">
-                  {/* Backend boundary explanation banner */}
                   <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex items-start justify-between gap-3 text-xs text-slate-300">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-white font-medium">
@@ -424,7 +414,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Add Task Input Form */}
                   <form onSubmit={handleAddTask} className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-3">
                     <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                       Add Task to Workspace
@@ -475,7 +464,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   </form>
 
-                  {/* Subject Filter Pills */}
                   <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
                     <span className="text-slate-400 text-xs shrink-0">Filter:</span>
                     <button
@@ -503,7 +491,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     ))}
                   </div>
 
-                  {/* Tasks List */}
                   <div className="space-y-2">
                     {loadingTasks && <p className="text-xs text-slate-400">Loading your tasks...</p>}
                     {taskError && <p role="alert" className="text-xs text-rose-300">{taskError}</p>}
@@ -574,7 +561,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     ))}
                   </div>
 
-                  {/* Progress Summary */}
                   <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between text-xs text-slate-300">
                     <span>
                       Completion: <strong className="text-white">{completedCount}</strong> of {tasks.length}
@@ -586,7 +572,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 2: SCHEDULE */}
               {activeTab === 'schedule' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -615,10 +600,8 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: STUDY PLAN (AI Smart Study Planner) */}
               {activeTab === 'planner' && (
                 <div className="space-y-6">
-                  {/* Top Bar / Strategy Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-r from-violet-950/40 via-purple-900/20 to-black/40 border border-violet-500/20">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -660,7 +643,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </button>
                   </div>
 
-                  {/* Error State */}
                   {planError && (
                     <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/40 flex items-start justify-between gap-3 text-xs text-rose-300">
                       <div className="flex items-start gap-2.5">
@@ -680,7 +662,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   )}
 
-                  {/* Loading State */}
                   {generatingPlan && (
                     <div className="p-10 rounded-3xl bg-white/[0.02] border border-violet-500/20 text-center space-y-4">
                       <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center mx-auto animate-pulse">
@@ -695,7 +676,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   )}
 
-                  {/* Empty state: No incomplete tasks */}
                   {!generatingPlan && !studyPlan && tasks.length > 0 && tasks.filter(t => !t.completed).length === 0 && (
                     <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-4">
                       <div className="w-12 h-12 rounded-2xl bg-emerald-950/60 border border-emerald-700/40 text-emerald-400 flex items-center justify-center mx-auto">
@@ -717,7 +697,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   )}
 
-                  {/* Empty state: No tasks at all */}
                   {!generatingPlan && !studyPlan && tasks.length === 0 && !loadingTasks && (
                     <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-4">
                       <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 text-violet-400 flex items-center justify-center mx-auto">
@@ -739,7 +718,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   )}
 
-                  {/* Initial ungenerated state with pending tasks */}
                   {!generatingPlan && !studyPlan && tasks.some(t => !t.completed) && (
                     <div className="p-8 rounded-3xl bg-white/[0.02] border border-violet-500/20 text-center space-y-4">
                       <div className="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/40 text-violet-400 flex items-center justify-center mx-auto">
@@ -762,10 +740,8 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                     </div>
                   )}
 
-                  {/* Generated Study Plan Display */}
                   {!generatingPlan && studyPlan && (
                     <div className="space-y-5 animate-in fade-in duration-300">
-                      {/* Summary Banner */}
                       <div className="p-4 sm:p-5 rounded-2xl bg-violet-950/30 border border-violet-500/30 space-y-2">
                         <div className="flex items-center gap-2 text-violet-300 text-xs font-semibold uppercase tracking-wider">
                           <Lightbulb className="w-3.5 h-3.5 text-violet-400" />
@@ -776,14 +752,12 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                         </p>
                       </div>
 
-                      {/* Empty tasks inside study plan response (e.g. backend reported all caught up) */}
                       {studyPlan.tasks.length === 0 && (
                         <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center text-xs text-slate-400">
                           All caught up! Add some tasks to generate a study plan.
                         </div>
                       )}
 
-                      {/* Ordered Tasks */}
                       {studyPlan.tasks.length > 0 && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-xs text-slate-400 px-1">
@@ -852,7 +826,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
                         </div>
                       )}
 
-                      {/* Practical Study Tips */}
                       {studyPlan.study_tips && studyPlan.study_tips.length > 0 && (
                         <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
                           <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 uppercase tracking-wider">
@@ -879,7 +852,6 @@ export const DashboardPreviewModal: React.FC<DashboardPreviewModalProps> = ({
           </>
         )}
 
-        {/* Modal Footer */}
         <div className="px-6 py-3.5 border-t border-white/10 bg-[#09090f] flex items-center justify-between text-xs text-slate-400">
           <span>
             {user ? `Connected: ${user.email}` : 'Supabase Auth Protected'}

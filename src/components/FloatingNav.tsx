@@ -45,7 +45,6 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ onOpenDashboard }) => 
               : 'bg-white/90 text-slate-900 border-slate-200/80 shadow-lg shadow-black/5 backdrop-blur-sm'
           }`}
         >
-          {/* Brand with small sparkle logo */}
           <a
             href="#"
             className="flex items-center gap-2 pl-1 pr-1 sm:pr-2 text-sm font-semibold tracking-tight text-slate-900 whitespace-nowrap group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-full"
@@ -57,7 +56,6 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ onOpenDashboard }) => 
             <span className="font-medium tracking-tight">Task Manager</span>
           </a>
 
-          {/* Desktop Links (Features, How it works, Dashboard) */}
           <nav className="hidden md:flex items-center gap-1 text-xs font-medium text-slate-600">
             <a
               href="#features"
@@ -87,7 +85,6 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ onOpenDashboard }) => 
             </button>
           </nav>
 
-          {/* Action Buttons & Auth Controls */}
           <div className="flex items-center gap-2 shrink-0">
             {loading ? (
               <div className="w-20 flex justify-center py-1">
@@ -134,7 +131,6 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ onOpenDashboard }) => 
               </div>
             )}
 
-            {/* Mobile Hamburger */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -148,7 +144,6 @@ export const FloatingNav: React.FC<FloatingNavProps> = ({ onOpenDashboard }) => 
         </div>
       </header>
 
-      {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <div className="fixed inset-x-4 top-20 z-50 md:hidden bg-white/95 backdrop-blur-lg border border-slate-200 rounded-2xl p-4 shadow-2xl text-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-1 text-sm font-medium">

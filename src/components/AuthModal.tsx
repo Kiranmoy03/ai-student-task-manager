@@ -113,13 +113,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
         className="relative w-full max-w-md rounded-3xl bg-[#0f0f18] border border-violet-500/30 text-white shadow-2xl p-6 sm:p-8 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Subtle decorative purple glow in corner */}
         <div
           className="absolute -top-24 -right-24 w-48 h-48 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"
           aria-hidden="true"
         />
 
-        {/* Close button */}
         <button
           type="button"
           onClick={closeAuthModal}
@@ -129,7 +127,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Brand header */}
         <div className="flex items-center gap-2.5 mb-6">
           <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center text-white shadow-md shadow-violet-500/30">
             <SparkleIcon size={14} className="text-white" />
@@ -144,7 +141,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           </div>
         </div>
 
-        {/* Mode switcher tabs */}
         <div className="flex items-center gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/10 mb-6 text-xs">
           <button
             type="button"
@@ -170,7 +166,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           </button>
         </div>
 
-        {/* Confirmation notice banner (when email confirmation is needed) */}
         {confirmationNotice && (
           <div className="mb-5 p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -187,7 +182,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           </div>
         )}
 
-        {/* Error notice banner */}
         {errorMessage && (
           <div className="mb-5 p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -195,7 +189,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           </div>
         )}
 
-        {/* Auth form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
@@ -271,7 +264,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onAuthSuccess }) => {
           </div>
         </form>
 
-        {/* Footer info */}
         <div className="mt-6 pt-4 border-t border-white/10 text-center text-[11px] text-slate-500">
           Protected by Supabase Auth · Connected to student-task-manager
         </div>

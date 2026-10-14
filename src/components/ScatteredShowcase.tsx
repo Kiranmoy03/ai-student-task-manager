@@ -99,7 +99,6 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
       className="showcase-section bg-[#09090d] text-white"
       aria-label="Spatial Product Showcase"
     >
-      {/* Header section with minimal typography */}
       <div className="max-w-4xl mx-auto text-center mb-10 sm:mb-14">
         <span className="text-xs uppercase tracking-widest text-violet-400 font-semibold mb-3 inline-block">
           Interactive Product Showcase
@@ -112,10 +111,8 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
         </p>
       </div>
 
-      {/* Responsive Grid with Defined Layout Spaces and Flow */}
       <div className="showcase-grid">
 
-        {/* 1. Subject Overview (Column 1, Row 1 on Desktop) */}
         <div className="showcase-item">
           <motion.div
             className="showcase-motion"
@@ -169,7 +166,6 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
           </motion.div>
         </div>
 
-        {/* 2. Today's Tasks (CENTER - LARGEST CARD, Spans 2 Rows on Desktop) */}
         <div className="showcase-item lg:row-span-2 lg:col-start-2">
           <motion.div
             className="showcase-motion"
@@ -278,7 +274,6 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
           </motion.div>
         </div>
 
-        {/* 3. Upcoming Deadline (Column 3, Row 1 on Desktop) */}
         <div className="showcase-item">
           <motion.div
             className="showcase-motion"
@@ -326,7 +321,6 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
           </motion.div>
         </div>
 
-        {/* 4. Weekly Progress (Column 1, Row 2 on Desktop) */}
         <div className="showcase-item">
           <motion.div
             className="showcase-motion"
@@ -384,7 +378,6 @@ export const ScatteredShowcase: React.FC<ScatteredShowcaseProps> = ({ onOpenDash
           </motion.div>
         </div>
 
-        {/* 5. Study-Plan Preview (Column 3, Row 2 on Desktop) */}
         <div className="showcase-item">
           <motion.div
             className="showcase-motion"

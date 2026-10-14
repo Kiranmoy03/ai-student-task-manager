@@ -41,34 +41,26 @@ function MainContent() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-slate-100 flex flex-col selection:bg-violet-600 selection:text-white">
-      {/* 2. Floating Navigation (Stays centered near top, visible during scroll) */}
       <FloatingNav onOpenDashboard={handleOpenDashboard} />
 
       <main className="flex-1 w-full flex flex-col">
-        {/* 1. Dark Particle-Ring Hero */}
         <HeroSection onStartPlanning={handleOpenDashboard} />
 
-        {/* 3. Scattered Product-Card Showcase */}
         <ScatteredShowcase onOpenDashboard={handleOpenDashboard} refreshKey={taskRefreshKey} />
 
-        {/* 4. Purple Feature Section */}
         <PurpleFeatureSection onSeeDashboard={handleOpenDashboard} />
 
-        {/* 5. White Rotating-Card Section */}
         <WhiteRotatingCardsSection />
 
-        {/* 6. Simple Ending */}
         <SimpleEnding onGetStarted={handleGetStarted} />
       </main>
 
-      {/* Interactive Student Workspace Dashboard Modal (Protected) */}
       <DashboardPreviewModal
         isOpen={isDashboardOpen}
         onClose={handleCloseDashboard}
         initialTab={dashboardTab}
       />
 
-      {/* Supabase Authentication Modal (Email/Password Login & Signup) */}
       <AuthModal onAuthSuccess={() => setIsDashboardOpen(true)} />
     </div>
   );
